@@ -4,6 +4,7 @@
 [![Typography](https://img.shields.io/badge/Font-GothamBlack-black.svg)]()
 [![Responsive](https://img.shields.io/badge/Responsive-Mobile%20%7C%20Tablet%20%7C%20PC-green.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)]()
+[![Icons](https://img.shields.io/badge/Icons-1022%20HD-orange.svg)]()
 
 > **The definitive design system, component framework, and agentic AI skill for creating modern cartoon and simulator game interfaces in Roblox Studio.**
 
@@ -45,7 +46,8 @@ Check-UI-Clean-Roblox/
 ├── src/                     # Production-ready Luau modules
 │   ├── CheckUITheme.luau       # Design tokens, color palettes, and asset IDs
 │   ├── CheckUIComponents.luau  # Builders for Windows, Headers, 3D Buttons, Close Buttons
-│   └── CheckUIController.luau  # Client controller: scaling, pop tweens, micro-interactions
+│   ├── CheckUIController.luau  # Client controller: scaling, pop tweens, micro-interactions
+│   └── CheckUIIcons.luau       # 1,022 HD icon registry (256px) with real rbxassetids
 └── examples/                # Complete, standalone menu scripts
     ├── ShopMenuExample.luau    # Compact 600x415 Shop with Gamepasses & Products
     ├── SettingsMenuExample.luau# 528x415 Settings with 3D SFX & Music toggles
@@ -94,6 +96,31 @@ local buyBtn = CheckUI.create3DButton({
     Text = "99 R$",
     Parent = shopWindow
 })
+```
+
+---
+
+## 🎨 Icon Registry (1,022 HD Icons)
+
+Check-UI includes a **complete icon registry** with 1,022 production-ready 256px HD icons across 10 categories:
+
+| Category | Icons | Subcategories |
+|:---|:---|:---|
+| 🐾 Animal | 12 | Bunny, Cat, Dog |
+| 💰 Currency | 110 | Cash, Coin, Crystal, Diamond, Ingot, Premium, Robux, Ticket |
+| ⭐ Exclusive | 32 | Angel Heart, Aura, Trail, VIP, + 4 more |
+| 🍔 Food | 48 | Avocado, Burger, Cookie, Pizza, + 5 more |
+| 🛠️ Item | 326 | Sword, Crown, Shield, Key, Trophy, + 33 more |
+| 🏠 Main | 236 | Settings, Codes, Music, Sound, Star, + 22 more |
+| 🌿 Nature | 86 | Apple, Cloud, Clover, Planet, + 7 more |
+| 👤 Player | 74 | Player, Friend, Skull, + 6 more |
+| 💬 Social | 24 | Discord, Twitter, X, Guilded |
+| 🖱️ UI | 74 | Checkmark, Close, Plus, Warning, + 9 more |
+
+```lua
+local Icons = require(game.ReplicatedStorage.CheckUI.CheckUIIcons)
+local coin = Icons.Currency.Coin.Golden_Coin_1st  -- "rbxassetid://..."
+local results = Icons.Search("sword")  -- fuzzy search
 ```
 
 ---

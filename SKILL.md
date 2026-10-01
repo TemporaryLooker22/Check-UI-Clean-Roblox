@@ -4,7 +4,8 @@ description: >-
   Ultra-complete Design System and implementation skill for creating production-grade,
   cartoon/simulator UI in Roblox Studio (Check-UI standard). Enforces strict GothamBlack typography,
   solid slate canvas (#3b5866), 3D beveled square close buttons, 2-tier header drop shadow dividers,
-  seamless vertical checkerboard gradients, continuous rotating sunbursts, and multi-device responsive UIScale engine.
+  seamless vertical checkerboard gradients, continuous rotating sunbursts, multi-device responsive UIScale engine,
+  and 1022 production-ready HD icons via CheckUIIcons registry.
 ---
 
 # Check-UI — Clean Roblox UI Design System & Implementation Skill
@@ -24,6 +25,7 @@ This skill equips any AI agent or human developer with the exact mathematical pr
 6. **Seamless Checkerboard (Damier) Fade**: Full-height texture overlay (`rbxassetid://385956923`) with a vertical `UIGradient` transparency sequence (`1 -> 0.82 -> 0.35 -> 0.10`) to eliminate hard cutoff lines.
 7. **Aspect Ratio Preservation**: Icons must **never** be stretched. Always set `ScaleType = Enum.ScaleType.Fit`.
 8. **Universal Responsive Scaling**: All modal windows and HUDs must be governed by dynamic `UIScale` responsive calculations based on `camera.ViewportSize` (baseline `1050 x 620`, clamped `[0.52, 1.18]`).
+9. **Center-Anchored Interactions**: ALL hover, click, and scale animations MUST originate from the exact geometric center of the element. See [Section 5](#5-center-anchored-animation-rules--micro-interactions).
 
 ---
 
@@ -323,12 +325,51 @@ camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateAllDeviceScales)
 
 ---
 
-## 5. Micro-Interactions & Pop Animations
+## 5. Center-Anchored Animation Rules & Micro-Interactions
 
-All buttons must animate from their geometric center:
+### 5.1 The Center-Anchor Mandate (Non-Negotiable)
+
+**ALL hover, click, press, and scale animations MUST originate from the exact geometric center of the element.** This is achieved by combining two mandatory properties:
+
+```lua
+-- MANDATORY for EVERY interactive element (buttons, cards, icons, modals):
+element.AnchorPoint = Vector2.new(0.5, 0.5)  -- Pivot at exact center
+element.Position = UDim2.new(X_SCALE, X_OFFSET, Y_SCALE, Y_OFFSET) -- Positioned BY its center
+```
+
+Then attach a `UIScale` child which will scale from the anchor point (center):
+
+```lua
+local uiScale = Instance.new("UIScale")
+uiScale.Name = "ButtonScale"  -- or "CardScale", "IconScale", etc.
+uiScale.Scale = 1
+uiScale.Parent = element
+```
+
+### 5.2 Why Center-Anchored? (Mathematical Explanation)
+
+Roblox's `UIScale` scales from the element's `AnchorPoint`. If `AnchorPoint = (0, 0)` (top-left default), scaling grows the element downward-right, creating a visually asymmetric "stretching" effect. By setting `AnchorPoint = (0.5, 0.5)`, the element expands equally in all 4 directions from its visual center, producing the industry-standard "pop" effect seen in Pet Simulator 99 and Blade Ball.
+
+```
+  ❌ AnchorPoint (0, 0):              ✅ AnchorPoint (0.5, 0.5):
+  +--------+                          +--------+
+  |████████| → Scale 1.1 →            |████████| → Scale 1.1 →
+  +--------+                          +--------+
+  +----------+                         +----------+
+  |██████████|  (grows down-right)     |██████████|  (grows uniformly from center)
+  |██████████|                         +----------+
+  +----------+
+```
+
+### 5.3 Animation Binding Pattern
 
 ```lua
 local function bindButtonAnimations(btn, scaleObj, hoverFactor, clickFactor)
+    -- PRECONDITION: btn.AnchorPoint MUST be Vector2.new(0.5, 0.5)
+    -- PRECONDITION: scaleObj is a UIScale parented to btn
+    assert(btn.AnchorPoint == Vector2.new(0.5, 0.5),
+        "[Check-UI] Button '" .. btn.Name .. "' must have AnchorPoint (0.5, 0.5)!")
+
     local tweenInfoHover = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local tweenInfoClick = TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local tweenInfoRelease = TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -349,6 +390,26 @@ local function bindButtonAnimations(btn, scaleObj, hoverFactor, clickFactor)
     end)
 end
 ```
+
+### 5.4 Pop Modal Open / Close (Center-Origin)
+
+```lua
+-- Open: Scale starts at targetScale * 0.72 with Y + 16px offset
+-- Tweens to targetScale in 0.24s with EasingStyle.Back.Out
+-- Close: Tweens to currentScale * 0.70 with Y + 14px offset
+-- in 0.14s with EasingStyle.Back.In, then sets Visible = false
+```
+
+### 5.5 Tween Values Quick Reference
+
+| Event | Target Scale | Duration | Easing | Sound |
+|:---|:---|:---|:---|:---|
+| **Hover In** | `1.05` | `0.08s` | `Quad.Out` | HoverSound |
+| **Hover Out** | `1.00` | `0.08s` | `Quad.Out` | — |
+| **Mouse Down** | `0.94` | `0.05s` | `Quad.Out` | ClickSound |
+| **Mouse Up** | `1.05` | `0.12s` | `Back.Out` | — |
+| **Modal Open** | `targetScale` from `targetScale * 0.72` | `0.24s` | `Back.Out` | — |
+| **Modal Close** | `currentScale * 0.70` | `0.14s` | `Back.In` | — |
 
 ---
 
@@ -372,3 +433,179 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 ```
+
+---
+
+## 7. CheckUIIcons — Production HD Icon Registry (1,022 Icons)
+
+### 7.1 Overview
+
+The `CheckUIIcons` module provides instant access to **1,022 production-grade HD icons (256px)** across **10 categories** and **130 subcategories**, all pre-uploaded to Roblox as `rbxassetid://` assets. No more placeholder icons, no more uploading manually.
+
+### 7.2 Installation
+
+Place `src/CheckUIIcons.luau` as a `ModuleScript` inside `ReplicatedStorage.CheckUI`:
+
+```
+ReplicatedStorage
+└── CheckUI
+    ├── CheckUITheme          (ModuleScript)
+    ├── CheckUIComponents     (ModuleScript)
+    ├── CheckUIController     (ModuleScript)
+    └── CheckUIIcons          (ModuleScript) ← 1,022 icons registry
+```
+
+### 7.3 Usage
+
+```lua
+local CheckUIIcons = require(game.ReplicatedStorage.CheckUI.CheckUIIcons)
+
+-- Direct table access (fastest, no overhead):
+local coinIcon = CheckUIIcons.Currency.Coin.Golden_Coin_1st
+-- Result: "rbxassetid://..." (ready to use as Image property)
+
+-- Path-based lookup via Get():
+local swordIcon = CheckUIIcons.Get("Item/Sword/Sword 1st")
+
+-- Fuzzy search via Search():
+local results = CheckUIIcons.Search("crown")
+-- Returns: { { Path = "Item/Crown/Crown 1st", AssetId = "rbxassetid://..." }, ... }
+
+-- Apply to an ImageLabel:
+local icon = Instance.new("ImageLabel")
+icon.Image = CheckUIIcons.Currency.Cash.Golden_Cash_1st
+icon.ScaleType = Enum.ScaleType.Fit  -- MANDATORY: Never stretch icons!
+```
+
+### 7.4 Complete Icon Catalog
+
+**Total: 1,022 icons | 10 categories | 130 subcategories**
+
+#### 🐾 Animal (12 icons, 3 subcategories)
+| Subcategory | Count | Sample Icon | Sample Asset ID |
+|:---|:---|:---|:---|
+| **Bunny** | 4 | `Bunny_1st` | `rbxassetid://107471473111631` |
+| **Cat** | 4 | `Cat_1st` | `rbxassetid://126233304381053` |
+| **Dog** | 4 | `Dog_1st` | `rbxassetid://94720044097792` |
+
+#### 💰 Currency (110 icons, 8 subcategories)
+| Subcategory | Count | Sample Icon | Sample Asset ID |
+|:---|:---|:---|:---|
+| **Cash** | 10 | `Blue_Cash_1st` | `rbxassetid://84261505275861` |
+| **Coin** | 20 | `Golden_Coin_1st` | via `CheckUIIcons.Currency.Coin.Golden_Coin_1st` |
+| **Crystal** | 10 | `Blue_Crystal_1st` | via `CheckUIIcons.Currency.Crystal.Blue_Crystal_1st` |
+| **Diamond** | 20 | `Blue_Diamond_1st` | via `CheckUIIcons.Currency.Diamond.Blue_Diamond_1st` |
+| **Ingot** | 14 | `Golden_Ingot_1st` | via `CheckUIIcons.Currency.Ingot.Golden_Ingot_1st` |
+| **Premium** | 20 | via direct access | via `CheckUIIcons.Currency.Premium` |
+| **Robux** | 8 | via direct access | via `CheckUIIcons.Currency.Robux` |
+| **Ticket** | 8 | via direct access | via `CheckUIIcons.Currency.Ticket` |
+
+#### ⭐ Exclusive (32 icons, 8 subcategories)
+| Subcategory | Count | Sample |
+|:---|:---|:---|
+| **Angel Heart** | 4 | `Angel_Heart_1st` → `rbxassetid://93345130450401` |
+| **Aura** | 4 | via `CheckUIIcons.Exclusive.Aura` |
+| **Aura 2** | 4 | via `CheckUIIcons.Exclusive["Aura 2"]` |
+| **Magical Teleport** | 4 | via `CheckUIIcons.Exclusive.Magical_Teleport` |
+| **Toilet with Head** | 4 | via `CheckUIIcons.Exclusive.Toilet_with_Head` |
+| **Trail** | 4 | via `CheckUIIcons.Exclusive.Trail` |
+| **Tung** | 4 | via `CheckUIIcons.Exclusive.Tung` |
+| **VIP** | 4 | via `CheckUIIcons.Exclusive.VIP` |
+
+#### 🍔 Food (48 icons, 9 subcategories)
+`Avocado` · `Bait (Fishing)` · `Blueberry` · `Burger` · `Carrot` · `Cookie` · `Lemon` · `Pancake` · `Pizza`
+
+#### 🛠️ Item (326 icons, 38 subcategories) — **Largest category**
+`Axe` · `Backpack` · `Balloon` · `Bomb` · `Book` · `Box` · `Bubble Gum` · `Calendar` · `Chest` · `Clock` · `Coil` · `Cracked Egg` · `Credit Card` · `Crown` · `Dice` · `Egg` · `Gift` · `Gum` · `Hammer` · `Key` · `Location Pin` · `Lock` · `Lucky Block` · `Magnet` · `Medal` · `Newspaper` · `Pencil` · `Potion` · `Rocket` · `Scroll` · `Shield` · `Shoe` · `Shovel` · `Sword` · `Target` · `Teleporter` · `Torch` · `Trophy`
+
+#### 🏠 Main (236 icons, 27 subcategories) — **UI essentials**
+`Broken Heart` · `Codes` · `Downgrade` · `Fire` · `Fire 2` · `Heart` · `House` · `Hoverboard` · `Lighting` · `Magnifying Glass` · `Music OFF` · `Music ON` · `Paw` · `Rebirth and Auto Open` · `Save` · `Settings` · `Shopping Bag` · `Shopping Cart` · `Sound OFF` · `Sound ON` · `Star` · `Stats` · `Trade` · `Trash Can` · `Upgrade` · `Verify` · `Wheel`
+
+#### 🌿 Nature (86 icons, 11 subcategories)
+`Apple` · `Banana` · `Cloud` · `Cloud 2` · `Clover` · `Leaf` · `Orange` · `Planet` · `Strawberry` · `Thunderstorm` · `Wheat`
+
+#### 👤 Player (74 icons, 9 subcategories)
+`4 Players` · `Add Player` · `Arm` · `Friend` · `Full Body` · `Player` · `RIP` · `Skull` · `Smiling Face With Horns`
+
+#### 💬 Social (24 icons, 4 subcategories)
+`Discord` · `Guilded` · `Twitter` · `X`
+
+#### 🖱️ UI (74 icons, 13 subcategories)
+`Chat` · `Checkmark` · `Checkmark Button` · `Close Button` · `Cursor` · `Exclamation Mark` · `Info` · `Minus` · `Plus` · `Question Mark` · `Skip` · `Warning` · `X`
+
+### 7.5 Icon Naming Convention
+
+Each icon follows a consistent naming pattern within its subcategory:
+
+```
+{Variant} {Name} {Edition} {Qualifier}
+```
+
+Examples:
+- `Blue_Cash_1st` — Blue variant, Cash icon, 1st edition
+- `Blue_Cash_1st_Outline` — Same with outline style
+- `Golden_Coin_2nd` — Golden variant, Coin icon, 2nd edition
+- `Cash_Black` — Black monochrome variant
+- `Cash_White` — White monochrome variant
+
+Most icons have 4 variants: **Standard**, **Standard Outline**, **Golden**, **Golden Outline**.
+
+### 7.6 Quick Lookup Examples
+
+```lua
+local Icons = require(game.ReplicatedStorage.CheckUI.CheckUIIcons)
+
+-- Shop tab icons
+local shopBag   = Icons.Main.Shopping_Bag.Shopping_Bag_1st
+local shopCart   = Icons.Main.Shopping_Cart.Shopping_Cart_1st
+
+-- Settings icons
+local sfxOn      = Icons.Main.Sound_ON.Sound_ON_1st
+local sfxOff     = Icons.Main.Sound_OFF.Sound_OFF_1st
+local musicOn    = Icons.Main.Music_ON.Music_ON_1st
+local musicOff   = Icons.Main.Music_OFF.Music_OFF_1st
+local settings   = Icons.Main.Settings.Settings_1st
+
+-- Codes UI
+local codesIcon  = Icons.Main.Codes.Codes_1st
+local verify     = Icons.Main.Verify.Verify_1st
+
+-- Currency displays
+local cash       = Icons.Currency.Cash.Golden_Cash_1st
+local coin       = Icons.Currency.Coin.Golden_Coin_1st
+local diamond    = Icons.Currency.Diamond.Golden_Diamond_1st
+
+-- Player / social
+local player     = Icons.Player.Player.Player_1st
+local discord    = Icons.Social.Discord.Gamepad_1st
+
+-- UI elements
+local close      = Icons.UI.Close_Button.Close_Button_1st
+local checkmark  = Icons.UI.Checkmark.Checkmark_1st
+local warning    = Icons.UI.Warning.Warning_1st
+
+-- Fuzzy search for all "star" icons
+local starIcons  = Icons.Search("star")
+for _, result in ipairs(starIcons) do
+    print(result.Path, result.AssetId)
+end
+```
+
+---
+
+## 8. Implementation Checklist
+
+When building any Check-UI compliant interface, verify:
+
+- [ ] **Font**: ALL text uses `Enum.Font.GothamBlack` — no exceptions
+- [ ] **Canvas**: Window background is solid `#3B5866` with `BackgroundTransparency = 0`
+- [ ] **Close Button**: Uses the exact 38x38 3D beveled square recipe from §3.1
+- [ ] **Header Divider**: Has 2-tier shadow (dark accent + pure black) at bottom of header
+- [ ] **Damier**: Full-height `Size = (1, 0, 1, 0)` with 4-point vertical `UIGradient` — never a partial height cutoff
+- [ ] **Icons**: `ScaleType = Enum.ScaleType.Fit` — never stretched
+- [ ] **AnchorPoints**: ALL interactive elements use `AnchorPoint = (0.5, 0.5)` with centered `UIScale`
+- [ ] **Responsive**: `UIScale` driven by `camera.ViewportSize` with baseline `1050x620`, clamped `[0.52, 1.18]`
+- [ ] **Animations**: All tweens target `UIScale.Scale` from center anchor — no Position-based animations for scale effects
+- [ ] **Sunbursts**: Rotating at 20°/sec via `RenderStepped`, paused when menu is hidden
+- [ ] **Strokes**: Outer borders `2.8-3.5px` black, inner highlights `1.2px` pastel
+- [ ] **Bevels**: 3px dark bottom extrusion on all buttons

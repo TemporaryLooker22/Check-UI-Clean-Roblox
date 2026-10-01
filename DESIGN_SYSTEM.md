@@ -205,3 +205,75 @@ end
 ### Pop Modal Open / Close
 - **Open**: Scale starts at `targetScale * 0.72` with `Y + 16px` offset, tweens to `targetScale` in `0.24s` with `EasingStyle.Back.Out`.
 - **Close**: Tweens to `currentScale * 0.70` with `Y + 14px` offset in `0.14s` with `EasingStyle.Back.In`, then sets `Visible = false`.
+
+---
+
+## 9. Center-Anchored Interaction Architecture
+
+ALL interactive elements (buttons, cards, icons, toggles) MUST use center-anchored scaling:
+
+### 9.1 Mandatory Properties
+
+Every interactive GUI element must set:
+```lua
+element.AnchorPoint = Vector2.new(0.5, 0.5)  -- Scale from exact geometric center
+element.Position = UDim2.new(...)              -- Position references the center point
+```
+
+Then attach a child `UIScale`:
+```lua
+local uiScale = Instance.new("UIScale")
+uiScale.Name = "ButtonScale"  -- or CardScale, IconScale, etc.
+uiScale.Scale = 1
+uiScale.Parent = element
+```
+
+### 9.2 Why Not Top-Left Anchored?
+
+Roblox `UIScale` scales from the `AnchorPoint`. Default `(0, 0)` causes asymmetric downward-right growth on hover — a hallmark of amateur UI. Center-anchored `(0.5, 0.5)` produces uniform expansion in all four directions, the standard "pop" effect used in Pet Simulator 99, Blade Ball, and all professional Roblox titles.
+
+### 9.3 Animation Origin Rule
+
+All hover/click/interaction tweens animate the `UIScale.Scale` property from center:
+- Hover In: Scale → `1.05` in `0.08s` (Quad.Out)
+- Hover Out: Scale → `1.00` in `0.08s` (Quad.Out)
+- Mouse Down: Scale → `0.94` in `0.05s` (Quad.Out)
+- Mouse Up: Scale → `1.05` in `0.12s` (Back.Out)
+
+Never animate `Position` or `Size` for scale effects. Always animate `UIScale.Scale`.
+
+---
+
+## 10. CheckUIIcons Registry (1,022 HD Icons)
+
+Check-UI ships with a production-ready Luau module containing **1,022 pre-uploaded HD icons (256px)** organized across 10 categories and 130 subcategories.
+
+### Categories
+| Category | Icons | Subcategories |
+|:---|:---|:---|
+| Animal | 12 | Bunny, Cat, Dog |
+| Currency | 110 | Cash, Coin, Crystal, Diamond, Ingot, Premium, Robux, Ticket |
+| Exclusive | 32 | Angel Heart, Aura, Aura 2, Magical Teleport, Toilet with Head, Trail, Tung, VIP |
+| Food | 48 | Avocado, Bait, Blueberry, Burger, Carrot, Cookie, Lemon, Pancake, Pizza |
+| Item | 326 | 38 subcategories (Axe, Sword, Crown, Shield, Key, Trophy, etc.) |
+| Main | 236 | 27 subcategories (Settings, Codes, Music ON/OFF, Sound ON/OFF, Shopping Cart, etc.) |
+| Nature | 86 | Apple, Banana, Cloud, Clover, Leaf, Orange, Planet, Strawberry, etc. |
+| Player | 74 | Player, Friend, Add Player, Full Body, RIP, Skull, etc. |
+| Social | 24 | Discord, Guilded, Twitter, X |
+| UI | 74 | Chat, Checkmark, Close Button, Cursor, Plus, Minus, Warning, X, etc. |
+
+### Usage
+```lua
+local Icons = require(game.ReplicatedStorage.CheckUI.CheckUIIcons)
+
+-- Direct access
+local coinIcon = Icons.Currency.Coin.Golden_Coin_1st
+
+-- Path lookup
+local icon = Icons.Get("Item/Sword/Sword 1st")
+
+-- Fuzzy search
+local results = Icons.Search("crown")
+```
+
+All icons follow the naming convention: `{Variant}_{Name}_{Edition}` with optional `_Outline` suffix. Most icons have 4 variants: Standard, Standard Outline, Golden, Golden Outline.
